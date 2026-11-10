@@ -227,9 +227,9 @@ function sticker(ctx, text, cx, cy, r, u, p = 1) {
   });
 }
 
-function arrow(ctx, x1, y1, x2, y2, u, color = C.ink, bend = 0.35) {
+function arrow(ctx, x1, y1, x2, y2, u, color = C.ink, bend = 0.35, ctrl = null) {
   const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, dx = x2 - x1, dy = y2 - y1;
-  const cx = mx - dy * bend, cy = my + dx * bend;
+  const cx = ctrl ? ctrl[0] : mx - dy * bend, cy = ctrl ? ctrl[1] : my + dx * bend;
   ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = (SUB() ? 3 : 6) * u; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   ctx.setLineDash([3 * u, 14 * u]);
   ctx.beginPath(); ctx.moveTo(x1, y1); ctx.quadraticCurveTo(cx, cy, x2, y2); ctx.stroke();
@@ -580,7 +580,9 @@ DRAW.proof = function (ctx, fmt, m, t) {
     const pr = polaroid(ctx, S.second, box, u, T.capA, -4, anim(t, 0.6));
     const p2 = fade(t, 1.0);
     if (p2 > 0) { ctx.save(); ctx.globalAlpha *= p2;
-      arrow(ctx, pr.cx + 10 * u, pr.cy - pr.fh / 2 - 20 * u, x0 - 14 * u, y0 + ahh * 0.3, u, C.ink2, 0.35); ctx.restore(); }
+      // up from the top of the photo, then level into the artwork's left edge
+      const sx = pr.cx, sy = pr.cy - pr.fh / 2 - 22 * u, ex = x0 - 16 * u, ey = Math.min(sy - 70 * u, y0 + ahh * 0.32);
+      arrow(ctx, sx, sy, ex, ey, u, C.ink2, 0, [sx, ey]); ctx.restore(); }
   }
 };
 
