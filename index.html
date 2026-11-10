@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Social Studio · Loaves and Fish Art Studio</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="assets/icon-512.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Fredoka:wght@500;600;700&family=Nunito:wght@500;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" defer></script>
+<script src="app.js" defer></script>
+</head>
+<body>
+<header class="nav">
+  <img src="assets/logo-horizontal-tight.png" alt="Loaves and Fish Art Studio" class="logo">
+  <span class="tag">Social Studio</span>
+</header>
+
+<main class="grid">
+  <aside class="panel">
+    <section class="box">
+      <h2><span class="num">1</span> Media</h2>
+      <label class="drop" id="drop">
+        <input type="file" id="fileIn" accept="image/*,video/*" multiple hidden>
+        <strong>Drop photos or videos</strong>
+        <span>or click to choose. Several photos = carousel.</span>
+      </label>
+      <div class="files" id="files"></div>
+      <div class="slotB" id="slotB" hidden>
+        <p class="hint">"Photo → Ink" uses two images: the original photo here, and the finished artwork as the main media above.</p>
+        <label class="btn alt small">Original photo<input type="file" id="fileB" accept="image/*" hidden></label>
+        <span id="slotBName" class="muted"></span>
+      </div>
+    </section>
+
+    <section class="box">
+      <h2><span class="num">2</span> Template</h2>
+      <div class="tpls" id="tpls"></div>
+    </section>
+
+    <section class="box">
+      <h2><span class="num">3</span> Callouts</h2>
+      <label>Eyebrow<input data-k="eyebrow"></label>
+      <label>Headline<input data-k="headline"></label>
+      <label>Sub line<input data-k="sub"></label>
+      <div class="two">
+        <label>Sticker<input data-k="sticker"></label>
+        <label>Call to action<input data-k="cta"></label>
+      </div>
+      <div class="two">
+        <label>Caption 1<input data-k="capA"></label>
+        <label>Caption 2<input data-k="capB"></label>
+      </div>
+      <p class="lbl">Quick callouts <span class="muted">(tap to toggle, max 4)</span></p>
+      <div class="chips" id="chips"></div>
+      <div class="row"><input id="chipIn" placeholder="Add your own callout"><button class="btn small" id="chipAdd">Add</button></div>
+    </section>
+
+    <section class="box">
+      <h2><span class="num">4</span> Adjust</h2>
+      <label>Zoom <input type="range" id="zoom" min="1" max="3" step="0.01" value="1"></label>
+      <p class="hint">Drag the preview to reposition. Scroll to zoom.</p>
+      <div class="row wrap">
+        <button class="btn alt small" id="resetPos">Reset position</button>
+        <label class="check"><input type="checkbox" id="showLogo" checked> Logo</label>
+        <label class="check"><input type="checkbox" id="showSafe" checked> Reel safe zones</label>
+      </div>
+    </section>
+
+    <section class="box">
+      <h2><span class="num">5</span> Video</h2>
+      <div id="vidCtl" hidden>
+        <div class="two">
+          <label>Start (s)<input type="number" id="trimS" min="0" step="0.1"></label>
+          <label>End (s)<input type="number" id="trimE" min="0" step="0.1"></label>
+        </div>
+      </div>
+      <label id="imgDurL">Photo reel length (s)<input type="number" id="imgDur" min="3" max="30" step="1" value="7"></label>
+      <label class="check"><input type="checkbox" id="endCard" checked> End card with logo (2.5 s)</label>
+      <button class="btn alt small" id="replay">▶ Preview animation</button>
+    </section>
+  </aside>
+
+  <section class="stage">
+    <div class="fmtTabs" id="fmtTabs"></div>
+    <div class="canvasWrap"><canvas id="cv"></canvas></div>
+
+    <div class="box export">
+      <h2>Export</h2>
+      <div class="fmtChecks" id="fmtChecks"></div>
+      <div class="row wrap">
+        <select id="imgType"><option value="jpeg">JPG</option><option value="png">PNG</option></select>
+        <label class="check"><input type="checkbox" id="allFiles" checked> All uploaded photos</label>
+      </div>
+      <div class="row wrap">
+        <button class="btn" id="expImg">Download images</button>
+        <button class="btn coral" id="expVid">Render reel / video</button>
+      </div>
+      <p class="hint" id="mimeNote"></p>
+      <div class="prog" id="prog" hidden><div id="progBar"></div><span id="progTxt"></span></div>
+    </div>
+
+    <div class="box guide">
+      <h2>Where each size goes</h2>
+      <table id="guide"></table>
+    </div>
+  </section>
+</main>
+</body>
+</html>

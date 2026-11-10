@@ -1,0 +1,73 @@
+/* Loaves and Fish Social Studio: mirrors loavesandfish.in tokens */
+:root{
+  --paper:#FFF8EC; --paper-2:#FFF1D6; --ink:#1E1B2E; --ink-2:#4A4560; --muted:#7A7490;
+  --sun:#FFC93C; --coral:#FF6B6B; --teal:#2EC4B6; --lilac:#B8A4FF; --mint:#C7F2E3; --pink:#FFD6E0;
+  --radius:18px; --shadow:5px 5px 0 var(--ink);
+  --head:'Fredoka',system-ui,sans-serif; --body:'Nunito',system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5;
+  background-image:radial-gradient(rgba(30,27,46,.07) 1px,transparent 1px);background-size:22px 22px}
+h2{font-family:var(--head);font-weight:600;font-size:1.15rem;margin:0 0 12px;display:flex;align-items:center;gap:8px}
+.num{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--sun);border:2px solid var(--ink);font-size:.85rem}
+.nav{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:14px;padding:10px 22px;background:rgba(255,248,236,.94);border-bottom:2px solid var(--ink);backdrop-filter:blur(8px)}
+.logo{height:44px;width:auto}
+.tag{font-family:var(--head);font-weight:600;font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;background:var(--sun);border:2px solid var(--ink);border-radius:999px;padding:3px 12px;transform:rotate(-2deg)}
+.grid{display:grid;grid-template-columns:380px 1fr;gap:22px;padding:22px;max-width:1500px;margin:0 auto}
+@media (max-width:900px){.grid{grid-template-columns:1fr}}
+.panel{display:flex;flex-direction:column;gap:18px}
+.box{background:#fff;border:2px solid var(--ink);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px}
+label{display:block;font-weight:800;font-size:.82rem;margin-bottom:10px}
+input:not([type=checkbox]):not([type=range]),select{display:block;width:100%;margin-top:4px;font:inherit;font-weight:600;padding:8px 10px;border:2px solid var(--ink);border-radius:10px;background:var(--paper)}
+input[type=range]{width:100%;accent-color:var(--coral)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row{display:flex;gap:8px;align-items:center}
+.row.wrap{flex-wrap:wrap;margin-top:6px}
+.row input{margin-top:0}
+.row select{width:auto;margin-top:0}
+.check{display:inline-flex;align-items:center;gap:6px;margin:0 10px 0 0;font-weight:700}
+.hint{font-size:.8rem;color:var(--muted);margin:4px 0 8px}
+.muted{color:var(--muted);font-weight:600}
+.lbl{font-weight:800;font-size:.82rem;margin:8px 0 6px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;font-family:var(--head);font-weight:600;font-size:1rem;cursor:pointer;
+  background:var(--sun);color:var(--ink);border:2px solid var(--ink);border-radius:999px;padding:10px 20px;box-shadow:3px 3px 0 var(--ink);transition:transform .1s}
+.btn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+.btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+.btn.alt{background:#fff}
+.btn.coral{background:var(--coral);color:#fff}
+.btn.small{font-size:.85rem;padding:6px 14px}
+.btn:disabled{opacity:.5;cursor:wait}
+.drop{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:2px;padding:22px;border:2px dashed var(--ink);border-radius:14px;background:var(--paper-2);cursor:pointer;font-weight:600}
+.drop.over{background:var(--mint)}
+.drop strong{font-family:var(--head);font-size:1.1rem}
+.drop span{font-size:.8rem;color:var(--ink-2)}
+.files{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.files .f{position:relative;width:62px;height:62px;border:2px solid var(--ink);border-radius:10px;overflow:hidden;cursor:pointer;background:var(--paper-2)}
+.files .f.on{outline:3px solid var(--coral);outline-offset:2px}
+.files .f img,.files .f video{width:100%;height:100%;object-fit:cover}
+.files .f .x{position:absolute;top:1px;right:1px;width:18px;height:18px;border-radius:50%;border:none;background:var(--ink);color:#fff;font-size:11px;line-height:18px;padding:0;cursor:pointer}
+.files .f .v{position:absolute;bottom:2px;left:3px;font-size:10px;font-weight:900;color:#fff;text-shadow:0 0 3px #000}
+.slotB{margin-top:12px;padding-top:10px;border-top:2px dashed var(--paper-2)}
+.tpls{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tpl{border:2px solid var(--ink);border-radius:12px;padding:8px 10px;background:var(--paper);cursor:pointer;text-align:left;font:inherit}
+.tpl b{display:block;font-family:var(--head);font-weight:600}
+.tpl small{color:var(--ink-2);font-size:.75rem;line-height:1.25;display:block}
+.tpl.on{background:var(--sun);box-shadow:3px 3px 0 var(--ink)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.chip{font:inherit;font-weight:800;font-size:.78rem;border:2px solid var(--ink);border-radius:999px;padding:4px 10px;background:#fff;cursor:pointer}
+.chip.on{background:var(--mint)}
+.stage{display:flex;flex-direction:column;gap:18px;min-width:0}
+.fmtTabs{display:flex;flex-wrap:wrap;gap:6px}
+.fmtTabs button{font:inherit;font-weight:800;font-size:.82rem;border:2px solid var(--ink);border-radius:999px;padding:6px 12px;background:#fff;cursor:pointer}
+.fmtTabs button.on{background:var(--ink);color:var(--paper)}
+.canvasWrap{display:flex;justify-content:center;align-items:center;background:var(--paper-2);border:2px solid var(--ink);border-radius:var(--radius);padding:18px;min-height:420px}
+#cv{max-width:100%;max-height:72vh;border:2px solid var(--ink);box-shadow:var(--shadow);cursor:grab;touch-action:none;background:#fff}
+#cv:active{cursor:grabbing}
+.fmtChecks{display:flex;flex-wrap:wrap;gap:6px 14px;margin-bottom:8px}
+.prog{position:relative;height:30px;border:2px solid var(--ink);border-radius:999px;overflow:hidden;background:#fff;margin-top:10px}
+.prog div{position:absolute;inset:0 auto 0 0;width:0;background:var(--teal);transition:width .2s}
+.prog span{position:relative;display:block;text-align:center;font-weight:800;font-size:.82rem;line-height:26px}
+.guide table{width:100%;border-collapse:collapse;font-size:.85rem}
+.guide th,.guide td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--paper-2);vertical-align:top}
+.guide th{font-family:var(--head);font-weight:600}
