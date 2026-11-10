@@ -42,9 +42,12 @@ const S = {
           sticker:'₹500', cta:'loavesandfish.in', capA:'your photo', capB:'drawn in ink' },
   chips: ['Drawn in ink, not printed', 'Framed ₹650'],
   customChips: [],
+  style: 'subtle',
   showLogo: true, showSafe: true, endCard: true, imgDur: 7,
   animStart: null,
 };
+const SUB = () => S.style === 'subtle';
+const SOFT_CHIPS = ['#FFF1D6', '#E6F7F0', '#FDE9EE', '#EEEAFE', '#E3F6F4'];
 let KB = 1;            // Ken Burns multiplier used during photo-reel export
 let dirty = true;
 let exporting = false;
@@ -57,13 +60,15 @@ const fmtById = id => FORMATS.find(f => f.id === id);
 /* ---------- drawing primitives ---------- */
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const easeBack = x => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
-const anim = (t, d, dur = 0.55) => t == null ? 1 : (t <= d ? 0 : easeBack(clamp((t - d) / dur, 0, 1)));
+const easeOut = x => 1 - Math.pow(1 - x, 3);
+const anim = (t, d, dur = 0.55) => t == null ? 1 : (t <= d ? 0 : (SUB() ? easeOut : easeBack)(clamp((t - d) / (SUB() ? dur * 1.4 : dur), 0, 1)));
 const fade = (t, d, dur = 0.5) => t == null ? 1 : clamp((t - d) / dur, 0, 1);
 
 function pop(ctx, cx, cy, p, fn) {
   if (p <= 0) return;
   ctx.save(); ctx.globalAlpha *= Math.min(1, p * 1.4);
-  ctx.translate(cx, cy); ctx.scale(p, p); ctx.translate(-cx, -cy);
+  const sc = SUB() ? 0.94 + 0.06 * p : p;
+  ctx.translate(cx, cy); ctx.scale(sc, sc); ctx.translate(-cx, -cy);
   fn(); ctx.restore();
 }
 function slide(ctx, p, dy, fn) {
@@ -71,12 +76,20 @@ function slide(ctx, p, dy, fn) {
   ctx.save(); ctx.globalAlpha *= clamp(p, 0, 1); ctx.translate(0, (1 - clamp(p, 0, 1)) * dy);
   fn(); ctx.restore();
 }
+const tilt = deg => SUB() ? 0 : deg * Math.PI / 180;
 function card(ctx, x, y, w, h, r, fill, u, sh = 8, shColor = C.ink) {
+  if (SUB()) {
+    ctx.save();
+    if (sh) { ctx.shadowColor = 'rgba(30,27,46,.16)'; ctx.shadowBlur = 34 * u; ctx.shadowOffsetY = 10 * u; }
+    ctx.fillStyle = fill; ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill(); ctx.restore();
+    ctx.lineWidth = 1.5 * u; ctx.strokeStyle = 'rgba(30,27,46,.12)'; ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.stroke();
+    return;
+  }
   if (sh) { ctx.fillStyle = shColor; ctx.beginPath(); ctx.roundRect(x + sh * u, y + sh * u, w, h, r); ctx.fill(); }
   ctx.fillStyle = fill; ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill();
   ctx.lineWidth = 4 * u; ctx.strokeStyle = C.ink; ctx.stroke();
 }
-function pill(ctx, x, y, w, h, fill, u, sh = 4) { card(ctx, x, y, w, h, h / 2, fill, u, sh); }
+function pill(ctx, x, y, w, h, fill, u, sh = 4) { card(ctx, x, y, w, h, h / 2, fill, u, SUB() ? 0 : sh); }
 
 function wrap(ctx, text, maxW) {
   const words = String(text).split(/\s+/).filter(Boolean), lines = [];
@@ -102,17 +115,18 @@ function fit(ctx, text, maxW, size, weight, fam, maxLines) {
 function textBlock(ctx, text, x, y, maxW, o) {
   if (!text) return 0;
   const weight = o.weight || 600, fam = o.fam || F.head;
-  const { lines, size } = fit(ctx, text, maxW, o.size, weight, fam, o.maxLines || 2);
+  const base = SUB() && fam === F.head && o.size > 50 * (o.u || 1) ? o.size * 0.86 : o.size;
+  const { lines, size } = fit(ctx, text, maxW, base, SUB() && weight === 600 ? 500 : weight, fam, o.maxLines || 2);
   const lh = size * (o.lh || 1.12);
   if (!o.dry) {
-    ctx.font = font(weight, size, fam); ctx.fillStyle = o.color || C.ink;
+    ctx.font = font(SUB() && weight === 600 ? 500 : weight, size, fam); ctx.fillStyle = o.color || C.ink;
     ctx.textBaseline = 'top'; ctx.textAlign = o.align || 'left';
     const ax = o.align === 'center' ? x + maxW / 2 : o.align === 'right' ? x + maxW : x;
     lines.forEach((l, i) => ctx.fillText(l, ax, y + i * lh));
     if (o.squiggle) {
       const lastW = Math.min(maxW, ctx.measureText(lines[lines.length - 1]).width);
       const sx = o.align === 'center' ? x + (maxW - lastW) / 2 : o.align === 'right' ? x + maxW - lastW : x;
-      squiggle(ctx, sx, y + lines.length * lh + size * 0.02, lastW, size * 0.16, C.sun);
+      squiggle(ctx, sx, y + lines.length * lh + size * 0.02, lastW, size * (SUB() ? 0.07 : 0.16), C.sun);
     }
   }
   return lines.length * lh + (o.squiggle ? size * 0.22 : 0);
@@ -130,11 +144,11 @@ function squiggle(ctx, x, y, w, sw, color) {
 
 const patCache = {};
 function dots(ctx, W, H, u, color) {
-  const key = color + Math.round(u * 100);
+  const key = color + Math.round(u * 100) + S.style;
   if (!patCache[key]) {
     const s = Math.max(8, Math.round(22 * u)), c = document.createElement('canvas');
     c.width = c.height = s; const x = c.getContext('2d');
-    x.fillStyle = color; x.beginPath(); x.arc(s / 2, s / 2, Math.max(1, 1.6 * u), 0, Math.PI * 2); x.fill();
+    x.fillStyle = color; x.globalAlpha = SUB() ? 0.5 : 1; x.beginPath(); x.arc(s / 2, s / 2, Math.max(1, 1.6 * u), 0, Math.PI * 2); x.fill();
     patCache[key] = c;
   }
   ctx.save(); ctx.fillStyle = ctx.createPattern(patCache[key], 'repeat'); ctx.fillRect(0, 0, W, H); ctx.restore();
@@ -170,6 +184,19 @@ function starPath(ctx, r, n = 14) {
 }
 function sticker(ctx, text, cx, cy, r, u, p = 1) {
   if (!text) return;
+  if (SUB()) {
+    r *= 0.8;
+    pop(ctx, cx, cy, p, () => {
+      ctx.save(); ctx.shadowColor = 'rgba(30,27,46,.18)'; ctx.shadowBlur = 24 * u; ctx.shadowOffsetY = 6 * u;
+      ctx.fillStyle = C.paper; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+      ctx.lineWidth = 1.5 * u; ctx.strokeStyle = C.coral; ctx.beginPath(); ctx.arc(cx, cy, r - 7 * u, 0, Math.PI * 2); ctx.stroke();
+      const { lines, size } = fit(ctx, text, r * 1.35, r * 0.46, 600, F.head, 2);
+      ctx.font = font(600, size, F.head); ctx.fillStyle = C.coral; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      const lh = size * 1.02, y0 = cy - ((lines.length - 1) * lh) / 2;
+      lines.forEach((l, i) => ctx.fillText(l, cx, y0 + i * lh + 2 * u));
+    });
+    return;
+  }
   pop(ctx, cx, cy, p, () => {
     ctx.save(); ctx.translate(cx, cy); ctx.rotate(-10 * Math.PI / 180);
     ctx.save(); ctx.translate(6 * u, 6 * u); starPath(ctx, r); ctx.fillStyle = C.ink; ctx.fill(); ctx.restore();
@@ -185,7 +212,7 @@ function sticker(ctx, text, cx, cy, r, u, p = 1) {
 function arrow(ctx, x1, y1, x2, y2, u, color = C.ink, bend = 0.35) {
   const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, dx = x2 - x1, dy = y2 - y1;
   const cx = mx - dy * bend, cy = my + dx * bend;
-  ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = 6 * u; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = (SUB() ? 3 : 6) * u; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   ctx.setLineDash([3 * u, 14 * u]);
   ctx.beginPath(); ctx.moveTo(x1, y1); ctx.quadraticCurveTo(cx, cy, x2, y2); ctx.stroke();
   ctx.setLineDash([]);
@@ -202,13 +229,13 @@ function polaroid(ctx, m, box, u, cap, rot, p = 1, aspect = 4 / 5) {
   if (ph + b + capH > box.h) { ph = box.h - b - capH; pw = ph * aspect; }
   const fw = pw + 2 * b, fh = ph + b + capH, cx = box.x + box.w / 2, cy = box.y + box.h / 2;
   pop(ctx, cx, cy, p, () => {
-    ctx.save(); ctx.translate(cx, cy); ctx.rotate(rot * Math.PI / 180);
+    ctx.save(); ctx.translate(cx, cy); ctx.rotate((SUB() ? rot * 0.35 : rot) * Math.PI / 180);
     card(ctx, -fw / 2, -fh / 2, fw, fh, 10 * u, C.white, u, 9);
     drawMedia(ctx, m, -fw / 2 + b, -fh / 2 + b, pw, ph, 4 * u, u);
-    ctx.lineWidth = 3 * u; ctx.strokeStyle = C.ink; ctx.strokeRect(-fw / 2 + b, -fh / 2 + b, pw, ph);
+    if (!SUB()) { ctx.lineWidth = 3 * u; ctx.strokeStyle = C.ink; ctx.strokeRect(-fw / 2 + b, -fh / 2 + b, pw, ph); }
     if (cap) {
       const { size } = fit(ctx, cap, fw - 2 * b, 56 * u, 700, F.hand, 1);
-      ctx.fillStyle = C.ink; ctx.font = font(700, size, F.hand); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = SUB() ? C.ink2 : C.ink; ctx.font = font(700, size, F.hand); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillText(cap, 0, fh / 2 - capH / 2);
     }
     ctx.restore();
@@ -233,6 +260,15 @@ function itText(ctx, text, o, p = 1, gap = 0) {
 function itEyebrow(ctx, text, u, align, p = 1, gap = 0, fill = C.sun) {
   if (!text) return null;
   const size = 30 * u, h = size * 1.75;
+  if (SUB()) {
+    const sz = 24 * u, label = text.toUpperCase();
+    return { gap, h: () => sz * 1.3, draw: (x, y, w) => slide(ctx, p, 10 * u, () => {
+      ctx.font = font(800, sz, F.body); ctx.letterSpacing = (3 * u) + 'px';
+      ctx.fillStyle = fill === C.sun ? C.coral : fill; ctx.textBaseline = 'top';
+      ctx.textAlign = align; const ax = align === 'center' ? x + w / 2 : align === 'right' ? x + w : x;
+      ctx.fillText(label, ax, y, w); ctx.letterSpacing = '0px';
+    }) };
+  }
   return { gap, h: () => h + 4 * u, draw: (x, y, w) => {
     ctx.font = font(600, size, F.head);
     const tw = Math.min(w - 10 * u, ctx.measureText(text).width + 36 * u);
@@ -247,7 +283,8 @@ function itEyebrow(ctx, text, u, align, p = 1, gap = 0, fill = C.sun) {
 }
 function itChips(ctx, chips, u, align, t, delay, gap = 0) {
   if (!chips.length) return null;
-  const size = 30 * u, padX = 20 * u, h = size * 1.75, g = 12 * u;
+  const size = (SUB() ? 26 : 30) * u, padX = 20 * u, h = size * 1.75, g = 12 * u;
+  const cWeight = SUB() ? 700 : 800;
   const layout = w => {
     ctx.font = font(800, size, F.body);
     const rows = [[]]; let rw = 0;
@@ -266,9 +303,9 @@ function itChips(ctx, chips, u, align, t, delay, gap = 0) {
         row.forEach(it => {
           const cx = sx + it.cw / 2, cy = y + ri * (h + g) + h / 2;
           pop(ctx, cx, cy, anim(t, delay + it.i * 0.18), () => {
-            ctx.save(); ctx.translate(cx, cy); ctx.rotate((it.i % 2 ? 1.5 : -1.5) * Math.PI / 180);
-            pill(ctx, -it.cw / 2, -h / 2, it.cw, h, CHIP_COLORS[it.i % CHIP_COLORS.length], u);
-            ctx.fillStyle = C.ink; ctx.font = font(800, size, F.body); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.save(); ctx.translate(cx, cy); ctx.rotate(tilt(it.i % 2 ? 1.5 : -1.5));
+            pill(ctx, -it.cw / 2, -h / 2, it.cw, h, (SUB() ? SOFT_CHIPS : CHIP_COLORS)[it.i % CHIP_COLORS.length], u);
+            ctx.fillStyle = SUB() ? C.ink2 : C.ink; ctx.font = font(cWeight, size, F.body); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
             ctx.fillText(it.txt, 0, 2 * u, it.cw - padX); ctx.restore();
           });
           sx += it.cw + g;
@@ -278,7 +315,8 @@ function itChips(ctx, chips, u, align, t, delay, gap = 0) {
 }
 function itCta(ctx, text, u, align, p = 1, gap = 0, fill = C.ink, color = C.paper) {
   if (!text) return null;
-  const size = 32 * u, h = size * 1.9;
+  if (SUB() && fill === C.sun) { fill = C.paper; color = C.ink; }
+  const size = (SUB() ? 28 : 32) * u, h = size * 1.9;
   return { gap, h: () => h + 6 * u, draw: (x, y, w) => {
     const label = text + '  →';
     ctx.font = font(800, size, F.body);
@@ -305,7 +343,7 @@ function itLogo(ctx, u, align, width, p = 1, gap = 0, onInk = false) {
   const bw = width + padX * 2, bh = lh + padY * 2;
   return { gap, h: () => bh + 6 * u, draw: (x, y, w) => {
     const px = align === 'center' ? x + (w - bw) / 2 : align === 'right' ? x + w - bw : x;
-    slide(ctx, p, -20 * u, () => { card(ctx, px, y, bw, bh, 22 * u, C.paper, u, 5); ctx.drawImage(img, px + padX, y + padY, width, lh); });
+    slide(ctx, p, -20 * u, () => { card(ctx, px, y, bw, bh, 22 * u, SUB() ? 'rgba(255,248,236,.94)' : C.paper, u, 5); ctx.drawImage(img, px + padX, y + padY, width, lh); });
   } };
 }
 
@@ -409,7 +447,7 @@ const DRAW = {
     const frame = (x, y, w, h) => {
       const b = 16 * u;
       slide(ctx, fade(t, 0.15), 50 * u, () => {
-        ctx.fillStyle = C.sun; ctx.beginPath(); ctx.roundRect(x + 14 * u, y + 14 * u, w, h, 22 * u); ctx.fill();
+        if (!SUB()) { ctx.fillStyle = C.sun; ctx.beginPath(); ctx.roundRect(x + 14 * u, y + 14 * u, w, h, 22 * u); ctx.fill(); }
         ctx.fillStyle = C.paper; ctx.beginPath(); ctx.roundRect(x, y, w, h, 22 * u); ctx.fill();
         drawMedia(ctx, m, x + b, y + b, w - 2 * b, h - 2 * b, 12 * u, u);
       });
@@ -438,7 +476,7 @@ const DRAW = {
     const { W, H, u, pad, land, top, bot } = geo(fmt), T = S.text;
     drawMedia(ctx, m, 0, 0, W, H, 0, u);
     const g = ctx.createLinearGradient(0, H * 0.5, 0, H);
-    g.addColorStop(0, 'rgba(30,27,46,0)'); g.addColorStop(1, 'rgba(30,27,46,.72)');
+    g.addColorStop(0, 'rgba(30,27,46,0)'); g.addColorStop(1, SUB() ? 'rgba(30,27,46,.5)' : 'rgba(30,27,46,.72)');
     ctx.fillStyle = g; ctx.fillRect(0, H * 0.5, W, H * 0.5);
     // stacked callouts top-left
     const size = 32 * u, h = size * 1.8;
@@ -446,9 +484,9 @@ const DRAW = {
       ctx.font = font(800, size, F.body);
       const cw = Math.min(W * 0.7, ctx.measureText(txt).width + 44 * u), y = top + i * (h + 16 * u);
       pop(ctx, pad + cw / 2, y + h / 2, anim(t, 0.3 + i * 0.35), () => {
-        ctx.save(); ctx.translate(pad + cw / 2, y + h / 2); ctx.rotate((i % 2 ? 1.5 : -1.5) * Math.PI / 180);
-        pill(ctx, -cw / 2, -h / 2, cw, h, CHIP_COLORS[i % CHIP_COLORS.length], u);
-        ctx.fillStyle = C.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = font(800, size, F.body);
+        ctx.save(); ctx.translate(pad + cw / 2, y + h / 2); ctx.rotate(tilt(i % 2 ? 1.5 : -1.5));
+        pill(ctx, -cw / 2, -h / 2, cw, h, SUB() ? 'rgba(255,248,236,.92)' : CHIP_COLORS[i % CHIP_COLORS.length], u);
+        ctx.fillStyle = SUB() ? C.ink2 : C.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = font(800, size, F.body);
         ctx.fillText(txt, 0, 2 * u, cw - 24 * u); ctx.restore();
       });
     });
@@ -570,6 +608,7 @@ function buildUI() {
 
   $('#zoom').oninput = e => { const m = cur(); if (m) { m.zoom = +e.target.value; dirty = true; } };
   $('#resetPos').onclick = () => { const m = cur(); if (m) { m.zoom = 1; m.ox = 0; m.oy = 0; syncUI(); } };
+  $('#style').onchange = e => { S.style = e.target.value; dirty = true; };
   $('#showLogo').onchange = e => { S.showLogo = e.target.checked; dirty = true; };
   $('#showSafe').onchange = e => { S.showSafe = e.target.checked; dirty = true; };
   $('#endCard').onchange = e => { S.endCard = e.target.checked; };
