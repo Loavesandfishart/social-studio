@@ -4,7 +4,8 @@ Browser app that turns a photo or video into branded posts and reels for Loaves 
 
 ## Use
 1. Drop photos or videos (several photos = one carousel set).
-2. Pick a template: Spotlight, Polaroid, Photo → Ink, Ink frame, Clean reel.
+2. Pick a template: Spotlight, Polaroid, Photo → Ink, Ink frame, Clean reel, or **Proof**.
+   - **Proof** (for customer approval on WhatsApp): main media = the artwork (plot preview or a photo of the piece), the slot under Media = the customer's photo. Choose A4 sheet, Framed or Black paper, set the style label, keep the PROOF watermark on, export Square 1:1.
 3. Edit callouts, toggle quick callouts (max 4), drag the preview to reposition, scroll to zoom.
 4. Tick the sizes, then **Download images** (JPG/PNG, ZIP when more than one) or **Render reel / video** (MP4, ZIP when more than one).
    - Photos render as a moving reel (slow zoom, animated callouts, end card).

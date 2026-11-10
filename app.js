@@ -25,10 +25,11 @@ const TEMPLATES = [
   { id:'before',    name:'Photo → Ink', desc:'Original photo next to the drawing' },
   { id:'ink',       name:'Ink frame', desc:'Dark ink background, framed artwork' },
   { id:'clean',     name:'Clean reel', desc:'Minimal overlay for reels' },
+  { id:'proof',     name:'Proof', desc:'Customer photo → artwork, for approval' },
 ];
 
 const PRESET_CHIPS = [
-  'Drawn in ink, not printed', 'A4 illustration ₹500', 'Framed ₹650', 'Colour +₹100',
+  'Pen-drawn in ink', 'A4 illustration ₹500', 'Framed ₹650', 'Colour +₹100',
   'White ink on black paper', 'Free shipping above ₹1,250', 'Up to 2 people per portrait',
   'Made by hand in Chennai', 'Bulk gifting for teams', 'Order from your phone',
 ];
@@ -38,9 +39,10 @@ const S = {
   files: [], sel: 0, second: null,
   template: 'spotlight', fmt: 'ig34',
   exportFmts: new Set(['ig34', 'v916']),
-  text: { eyebrow:'Portraits from your photos', headline:'Your photo, drawn in ink.', sub:'Real pens on paper. Never printed.',
+  text: { eyebrow:'Portraits from your photos', headline:'Your photo, drawn in ink.', sub:'Real pens on real paper.',
           sticker:'₹500', cta:'loavesandfish.in', capA:'your photo', capB:'drawn in ink' },
-  chips: ['Drawn in ink, not printed', 'Framed ₹650'],
+  chips: ['Pen-drawn in ink', 'Framed ₹650'],
+  proof: { mount: 'sheet', tag: 'Black ink · A4', tagSub: 'Unframed', note: 'Proof for approval', watermark: true },
   customChips: [],
   style: 'subtle',
   showLogo: true, showSafe: true, endCard: true, imgDur: 7,
@@ -173,6 +175,22 @@ function drawMedia(ctx, m, x, y, w, h, r = 0, u = 1) {
     const dx = x + (w - dw) / 2 + (m.ox || 0) * (dw - w) / 2;
     const dy = y + (h - dh) / 2 + (m.oy || 0) * (dh - h) / 2;
     ctx.drawImage(m.el, dx, dy, dw, dh);
+  }
+  ctx.restore();
+}
+
+function drawContain(ctx, m, x, y, w, h, bg, u) {
+  ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+  ctx.fillStyle = bg; ctx.fillRect(x, y, w, h);
+  const sz = mediaSize(m);
+  if (!sz || !sz[0]) {
+    ctx.fillStyle = C.muted; ctx.font = font(600, Math.min(w, h) * 0.07, F.head);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('Add the artwork', x + w / 2, y + h / 2);
+  } else {
+    const s = Math.min(w / sz[0], h / sz[1]) * (m.zoom || 1);
+    const dw = sz[0] * s, dh = sz[1] * s;
+    const ex = Math.max(0, dw - w) / 2, ey = Math.max(0, dh - h) / 2;
+    ctx.drawImage(m.el, x + (w - dw) / 2 + (m.ox || 0) * ex, y + (h - dh) / 2 + (m.oy || 0) * ey, dw, dh);
   }
   ctx.restore();
 }
@@ -499,6 +517,73 @@ const DRAW = {
   },
 };
 
+DRAW.proof = function (ctx, fmt, m, t) {
+  const { W, H, u, pad, land, top, bot } = geo(fmt), T = S.text, P = S.proof;
+  const black = P.mount === 'black';
+  ctx.fillStyle = C.paper; ctx.fillRect(0, 0, W, H); dots(ctx, W, H, u, 'rgba(30,27,46,.09)');
+  // header: logo left, note right
+  const logo = itLogo(ctx, u, 'left', 250 * u, fade(t, 0.1));
+  const lh = logo ? logo.h() : 0;
+  if (logo) logo.draw(pad, top, W);
+  if (P.note) {
+    ctx.save(); ctx.font = font(800, 24 * u, F.body); ctx.letterSpacing = (3 * u) + 'px';
+    ctx.fillStyle = C.coral; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    ctx.fillText(P.note.toUpperCase(), W - pad, top + Math.max(lh, 40 * u) / 2); ctx.restore();
+  }
+  // footer: style label
+  const tagH = 64 * u;
+  if (P.tag) {
+    ctx.font = font(800, 30 * u, F.body);
+    const tw = ctx.measureText(P.tag).width + 52 * u, ty = H - bot - tagH;
+    ctx.save(); ctx.fillStyle = C.white; ctx.strokeStyle = 'rgba(30,27,46,.14)'; ctx.lineWidth = 2 * u;
+    ctx.beginPath(); ctx.roundRect(pad, ty, tw, tagH, tagH / 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = C.ink; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(P.tag, pad + 26 * u, ty + tagH / 2 + 2 * u);
+    if (P.tagSub) { ctx.font = font(800, 24 * u, F.body); ctx.fillStyle = C.muted; ctx.fillText(P.tagSub, pad + tw + 24 * u, ty + tagH / 2 + 2 * u); }
+    ctx.restore();
+  }
+  // artwork area
+  const ay = top + Math.max(lh, 40 * u) + 40 * u, ah = H - bot - tagH - 44 * u - ay;
+  const hasPhoto = !!S.second;
+  const framed = P.mount === 'frame';
+  const outerAspect = 1 / 1.414;
+  let aw = Math.min(ah * outerAspect, (hasPhoto ? 0.56 : 0.8) * W);
+  let ahh = aw / outerAspect;
+  const acx = hasPhoto ? (land ? W * 0.6 : W * 0.6) : W / 2, acy = ay + ah / 2;
+  const x0 = acx - aw / 2, y0 = acy - ahh / 2;
+  slide(ctx, fade(t, 0.2), 40 * u, () => {
+    ctx.save(); ctx.shadowColor = 'rgba(30,27,46,.22)'; ctx.shadowBlur = 40 * u; ctx.shadowOffsetY = 16 * u;
+    ctx.fillStyle = framed ? '#24212C' : black ? '#16141C' : C.white; ctx.fillRect(x0, y0, aw, ahh); ctx.restore();
+    let ix = x0, iy = y0, iw = aw, ih = ahh;
+    if (framed) {
+      const fw = aw * 0.075; ctx.strokeStyle = '#3A3644'; ctx.lineWidth = 2 * u; ctx.strokeRect(x0 + 3 * u, y0 + 3 * u, aw - 6 * u, ahh - 6 * u);
+      ix += fw; iy += fw; iw -= 2 * fw; ih -= 2 * fw;
+      ctx.fillStyle = '#FCFBF7'; ctx.fillRect(ix, iy, iw, ih);
+      const mat = aw * 0.09; ix += mat; iy += mat; iw -= 2 * mat; ih -= 2 * mat;
+    } else {
+      const p = aw * 0.06; ix += p; iy += p; iw -= 2 * p; ih -= 2 * p;
+    }
+    drawContain(ctx, m, ix, iy, iw, ih, black ? '#16141C' : C.white, u);
+    if (framed) { ctx.strokeStyle = 'rgba(30,27,46,.18)'; ctx.lineWidth = 1.5 * u; ctx.strokeRect(ix, iy, iw, ih); }
+    if (P.watermark) {
+      ctx.save(); ctx.beginPath(); ctx.rect(x0, y0, aw, ahh); ctx.clip();
+      ctx.translate(acx, acy); ctx.rotate(-30 * Math.PI / 180);
+      ctx.font = font(700, 30 * u, F.head); ctx.fillStyle = black ? 'rgba(255,248,236,.16)' : 'rgba(30,27,46,.10)';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      for (let yy = -ahh; yy <= ahh; yy += 110 * u) for (let xx = -aw; xx <= aw; xx += 360 * u)
+        ctx.fillText('PROOF · loavesandfish.in', xx + ((yy / (110 * u)) % 2 ? 180 * u : 0), yy);
+      ctx.restore();
+    }
+  });
+  if (hasPhoto) {
+    const pw = Math.min(W * 0.27, aw * 0.6);
+    const box = { x: Math.max(pad * 0.5, x0 - pw * 1.05), y: y0 + ahh * 0.42, w: pw, h: pw * 1.3 };
+    const pr = polaroid(ctx, S.second, box, u, T.capA, -4, anim(t, 0.6));
+    const p2 = fade(t, 1.0);
+    if (p2 > 0) { ctx.save(); ctx.globalAlpha *= p2;
+      arrow(ctx, pr.cx + 10 * u, pr.cy - pr.fh / 2 - 20 * u, x0 - 14 * u, y0 + ahh * 0.3, u, C.ink2, 0.35); ctx.restore(); }
+  }
+};
+
 function drawEndCard(ctx, fmt, et) {
   const { W, H, u, pad } = geo(fmt), a = clamp(et / 0.4, 0, 1);
   ctx.save(); ctx.globalAlpha = a;
@@ -609,6 +694,18 @@ function buildUI() {
   $('#zoom').oninput = e => { const m = cur(); if (m) { m.zoom = +e.target.value; dirty = true; } };
   $('#resetPos').onclick = () => { const m = cur(); if (m) { m.zoom = 1; m.ox = 0; m.oy = 0; syncUI(); } };
   $('#style').onchange = e => { S.style = e.target.value; dirty = true; };
+  const pr = S.proof;
+  $('#pMount').value = pr.mount; $('#pTag').value = pr.tag; $('#pSub').value = pr.tagSub; $('#pNote').value = pr.note; $('#pWm').checked = pr.watermark;
+  $('#pMount').onchange = e => {
+    pr.mount = e.target.value;
+    const auto = { sheet: 'Unframed', frame: 'Framed', black: 'White ink on black paper' };
+    if (!pr.tagSub || Object.values(auto).includes(pr.tagSub)) { pr.tagSub = auto[pr.mount]; $('#pSub').value = pr.tagSub; }
+    dirty = true;
+  };
+  $('#pTag').oninput = e => { pr.tag = e.target.value; dirty = true; };
+  $('#pSub').oninput = e => { pr.tagSub = e.target.value; dirty = true; };
+  $('#pNote').oninput = e => { pr.note = e.target.value; dirty = true; };
+  $('#pWm').onchange = e => { pr.watermark = e.target.checked; dirty = true; };
   $('#showLogo').onchange = e => { S.showLogo = e.target.checked; dirty = true; };
   $('#showSafe').onchange = e => { S.showSafe = e.target.checked; dirty = true; };
   $('#endCard').onchange = e => { S.endCard = e.target.checked; };
@@ -656,7 +753,8 @@ function select(i) {
 function syncUI() {
   document.querySelectorAll('.tpl').forEach(b => b.classList.toggle('on', b.dataset.t === S.template));
   document.querySelectorAll('#fmtTabs button').forEach(b => b.classList.toggle('on', b.dataset.f === S.fmt));
-  $('#slotB').hidden = S.template !== 'before';
+  $('#slotB').hidden = !['before', 'proof'].includes(S.template);
+  $('#proofBox').hidden = S.template !== 'proof';
   const m = cur(), vid = m && m.type === 'video';
   $('#vidCtl').hidden = !vid; $('#imgDurL').hidden = !!vid;
   if (m) { $('#zoom').value = m.zoom; }
